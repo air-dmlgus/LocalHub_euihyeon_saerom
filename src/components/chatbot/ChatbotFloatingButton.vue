@@ -1,5 +1,9 @@
 <script setup>
-import { nextTick, onBeforeUnmount, ref } from 'vue'
+import {
+  nextTick,
+  onBeforeUnmount,
+  ref,
+} from 'vue'
 import { searchPlacesFromQuestion } from '../../services/placeSearch.js'
 import ChatPlaceCard from './ChatPlaceCard.vue'
 
@@ -7,6 +11,7 @@ const isOpen = ref(false)
 const inputMessage = ref('')
 const isLoading = ref(false)
 const messageListRef = ref(null)
+const lastSearchFilters = ref(null)
 
 let replyTimerId = null
 
@@ -38,7 +43,6 @@ function createInitialMessages() {
     {
       id: createMessageId(),
       role: 'assistant',
-      intent: 'message',
       text: INITIAL_MESSAGE,
       places: [],
     },
@@ -84,6 +88,7 @@ async function startNewConversation() {
   messages.value = createInitialMessages()
   inputMessage.value = ''
   isLoading.value = false
+  lastSearchFilters.value = null
 
   await scrollToBottom()
 }
@@ -98,9 +103,7 @@ function createAssistantResponseText(result) {
   }
 
   if (result.intent === 'count') {
-    return `입력한 조건에 맞는 장소는 총 ${result.total.toLocaleString(
-      'ko-KR',
-    )}개입니다.`
+    return `입력한 조건에 맞는 장소는 총 ${result.total.toLocaleString('ko-KR')}개입니다.`
   }
 
   if (result.total === 0) {
@@ -118,37 +121,38 @@ function createAssistantResponseText(result) {
   }
 
   if (result.total > result.places.length) {
-    return `입력한 조건에 맞는 장소는 총 ${result.total.toLocaleString(
-      'ko-KR',
-    )}곳이며, 그중 ${result.places.length}곳을 소개할게요.`
+    return `입력한 조건에 맞는 장소는 총 ${result.total.toLocaleString('ko-KR')}곳이며, 그중 ${result.places.length}곳을 소개할게요.`
   }
 
-  return `입력한 조건에 맞는 장소 ${result.total.toLocaleString(
-    'ko-KR',
-  )}곳을 찾았어요.`
+  return `입력한 조건에 맞는 장소 ${result.total.toLocaleString('ko-KR')}곳을 찾았어요.`
 }
 
 function addSearchErrorMessage() {
   messages.value.push({
     id: createMessageId(),
     role: 'assistant',
-    intent: 'error',
     text: '지역 정보를 검색하는 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.',
     places: [],
   })
 }
 
-async function sendMessage(message = inputMessage.value) {
-  const trimmedMessage = String(message ?? '').trim()
+async function sendMessage(
+  message = inputMessage.value,
+) {
+  const trimmedMessage = String(
+    message ?? '',
+  ).trim()
 
-  if (!trimmedMessage || isLoading.value) {
+  if (
+    !trimmedMessage ||
+    isLoading.value
+  ) {
     return
   }
 
   messages.value.push({
     id: createMessageId(),
     role: 'user',
-    intent: 'message',
     text: trimmedMessage,
     places: [],
   })
@@ -161,9 +165,41 @@ async function sendMessage(message = inputMessage.value) {
   let searchResult
 
   try {
-    searchResult = searchPlacesFromQuestion(trimmedMessage)
+    searchResult =
+      searchPlacesFromQuestion(
+        trimmedMessage,
+        lastSearchFilters.value,
+      )
+
+    if (
+      !searchResult.needsClarification &&
+      searchResult.intent !== 'limitation'
+    ) {
+      const {
+        location,
+        category,
+        requiresImage,
+        keywords,
+      } = searchResult.filters
+
+      if (
+        location ||
+        category ||
+        requiresImage
+      ) {
+        lastSearchFilters.value = {
+          location,
+          category,
+          requiresImage,
+          keywords: keywords ?? [],
+        }
+      }
+    }
   } catch (error) {
-    console.error('장소 검색 중 오류가 발생했습니다.', error)
+    console.error(
+      '장소 검색 중 오류가 발생했습니다.',
+      error,
+    )
 
     addSearchErrorMessage()
     isLoading.value = false
@@ -172,39 +208,37 @@ async function sendMessage(message = inputMessage.value) {
     return
   }
 
-  replyTimerId = window.setTimeout(async () => {
-    try {
-      const responseText =
-        createAssistantResponseText(searchResult)
+  replyTimerId = window.setTimeout(
+    async () => {
+      try {
+        const responseText =
+          createAssistantResponseText(
+            searchResult,
+          )
 
-      const shouldShowPlaceCards = [
-        'search',
-        'course',
-      ].includes(searchResult.intent)
+        messages.value.push({
+          id: createMessageId(),
+          role: 'assistant',
+          text: responseText,
+          intent: searchResult.intent,
+          places: searchResult.places,
+        })
+      } catch (error) {
+        console.error(
+          '챗봇 답변 생성 중 오류가 발생했습니다.',
+          error,
+        )
 
-      messages.value.push({
-        id: createMessageId(),
-        role: 'assistant',
-        intent: searchResult.intent,
-        text: responseText,
-        places: shouldShowPlaceCards
-          ? searchResult.places
-          : [],
-      })
-    } catch (error) {
-      console.error(
-        '챗봇 답변 생성 중 오류가 발생했습니다.',
-        error,
-      )
+        addSearchErrorMessage()
+      } finally {
+        isLoading.value = false
+        replyTimerId = null
 
-      addSearchErrorMessage()
-    } finally {
-      isLoading.value = false
-      replyTimerId = null
-
-      await scrollToBottom()
-    }
-  }, 350)
+        await scrollToBottom()
+      }
+    },
+    350,
+  )
 }
 
 function selectSuggestedQuestion(question) {
@@ -214,7 +248,6 @@ function selectSuggestedQuestion(question) {
 onBeforeUnmount(() => {
   if (replyTimerId) {
     window.clearTimeout(replyTimerId)
-    replyTimerId = null
   }
 })
 </script>
@@ -580,25 +613,13 @@ onBeforeUnmount(() => {
 .message-content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-
-  max-width: 88%;
-  min-width: 0;
-}
-
-.message-content--user {
-  align-items: flex-end;
-}
-
-.message-content--assistant {
-  align-items: stretch;
-  width: 100%;
+  gap: 8px;
+  max-width: 82%;
 }
 
 .message-bubble {
   max-width: 100%;
   padding: 11px 13px;
-
   border-radius: 16px;
 
   font-size: 14px;
@@ -608,8 +629,6 @@ onBeforeUnmount(() => {
 }
 
 .message-bubble--assistant {
-  align-self: flex-start;
-
   border: 1px solid var(--border, #dbe5e5);
   border-bottom-left-radius: 4px;
   background: #ffffff;
@@ -624,28 +643,49 @@ onBeforeUnmount(() => {
   color: #ffffff;
 }
 
+
+.message-row--assistant .message-content {
+  width: 100%;
+  max-width: 100%;
+}
+
+.message-row--assistant .message-bubble {
+  align-self: flex-start;
+  max-width: 82%;
+}
+
 .chat-place-list {
   display: flex;
-  gap: 10px;
+  gap: 12px;
 
   width: 100%;
-  padding: 2px 2px 10px;
-
   overflow-x: auto;
   overflow-y: hidden;
+  padding: 2px 2px 10px;
 
+  scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
 }
 
 .chat-place-slide {
-  flex: 0 0 88%;
+  flex: 0 0 min(280px, calc(100% - 16px));
   min-width: 0;
 
   scroll-snap-align: start;
-  scroll-snap-stop: always;
+}
+
+.chat-place-list::-webkit-scrollbar {
+  height: 7px;
+}
+
+.chat-place-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(14, 165, 164, 0.35);
+}
+
+.chat-place-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .loading-message {
@@ -803,46 +843,6 @@ onBeforeUnmount(() => {
   40% {
     transform: translateY(-5px);
     opacity: 1;
-  }
-}
-
-@media (max-width: 640px) {
-  .floating-button {
-    right: 16px;
-    bottom: 16px;
-  }
-
-  .floating-label {
-    display: none;
-  }
-
-  .chatbot-panel {
-    inset: 0;
-
-    width: 100%;
-    height: 100dvh;
-    max-width: none;
-
-    border: 0;
-    border-radius: 0;
-  }
-
-  .chatbot-header {
-    padding-top: max(
-      18px,
-      env(safe-area-inset-top)
-    );
-  }
-
-  .chat-place-slide {
-    flex-basis: 82%;
-  }
-
-  .chat-form {
-    padding-bottom: max(
-      14px,
-      env(safe-area-inset-bottom)
-    );
   }
 }
 </style>

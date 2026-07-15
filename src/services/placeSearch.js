@@ -10,7 +10,13 @@ const LIMITATION_MESSAGE =
 const CATEGORY_ALIASES = [
   {
     category: '축제공연행사',
-    aliases: ['축제공연행사', '축제 공연 행사', '축제', '행사', '공연'],
+    aliases: [
+      '축제공연행사',
+      '축제 공연 행사',
+      '축제',
+      '행사',
+      '공연',
+    ],
   },
   {
     category: '여행코스',
@@ -18,47 +24,58 @@ const CATEGORY_ALIASES = [
   },
   {
     category: '문화시설',
-    aliases: ['문화시설', '문화 시설', '박물관', '미술관'],
+    aliases: [
+      '문화시설',
+      '문화 시설',
+      '박물관',
+      '미술관',
+    ],
   },
   {
     category: '음식점',
-    aliases: ['음식점', '맛집', '식당', '카페'],
+    aliases: [
+      '음식점',
+      '맛집',
+      '식당',
+      '카페',
+    ],
   },
   {
     category: '관광지',
-    aliases: ['관광지', '명소', '볼거리'],
+    aliases: [
+      '관광지',
+      '명소',
+      '볼거리',
+    ],
   },
   {
     category: '숙박',
-    aliases: ['숙박', '숙소', '호텔', '펜션'],
+    aliases: [
+      '숙박',
+      '숙소',
+      '호텔',
+      '펜션',
+    ],
   },
   {
     category: '쇼핑',
-    aliases: ['쇼핑', '시장'],
+    aliases: [
+      '쇼핑',
+      '시장',
+    ],
   },
   {
     category: '레포츠',
-    aliases: ['레포츠', '체험', '운동'],
+    aliases: [
+      '레포츠',
+      '체험',
+      '운동',
+    ],
   },
 ]
 
 const LOCATION_ALIASES = [
-  {
-    location: '대전광역시',
-    aliases: ['대전광역시', '대전'],
-  },
-  {
-    location: '충청남도',
-    aliases: ['충청남도', '충남'],
-  },
-  {
-    location: '충청북도',
-    aliases: ['충청북도', '충북'],
-  },
-  {
-    location: '충청도',
-    aliases: ['충청도', '충청권', '충청 지역'],
-  },
+  // 세부 지역을 광역 지역보다 먼저 검사해야 합니다.
   {
     location: '유성구',
     aliases: ['유성구'],
@@ -95,42 +112,147 @@ const LOCATION_ALIASES = [
     location: '옥천군',
     aliases: ['옥천군', '옥천'],
   },
+  {
+    location: '충청권',
+    aliases: ['충청도', '충청권'],
+  },
+  {
+    location: '대전광역시',
+    aliases: ['대전광역시', '대전'],
+  },
+  {
+    location: '충청남도',
+    aliases: ['충청남도', '충남'],
+  },
+  {
+    location: '충청북도',
+    aliases: ['충청북도', '충북'],
+  },
 ]
 
 const LIMITATION_KEYWORDS = [
-  '운영시간', '운영 시간', '영업시간', '영업 시간',
-  '오늘 영업', '문 열', '문 닫', '몇 시', '몇시',
-  '오픈 시간', '마감 시간', '입장료', '가격', '요금',
-  '휴무일', '메뉴', '예약', '주차', '혼잡도', '날씨',
-  '축제 날짜', '축제 일정', '언제 시작',
+  '운영시간',
+  '운영 시간',
+  '영업시간',
+  '영업 시간',
+  '오늘 영업',
+  '문 열',
+  '문 닫',
+  '몇 시',
+  '몇시',
+  '오픈 시간',
+  '마감 시간',
+  '입장료',
+  '가격',
+  '요금',
+  '휴무일',
+  '메뉴',
+  '예약',
+  '주차',
+  '혼잡도',
+  '날씨',
+  '축제 날짜',
+  '축제 일정',
+  '언제 시작',
 ]
 
 const COURSE_KEYWORDS = [
-  '당일치기', '데이트', '나들이', '장소 조합',
-  '코스 추천', '코스 짜', '코스 만들어',
-  '코스 만들', '코스 구성',
+  '당일치기',
+  '데이트',
+  '나들이',
+  '장소 조합',
+  '코스 추천',
+  '코스 짜',
+  '코스 만들어',
+  '코스 만들',
+  '코스 구성',
+]
+
+const FOLLOW_UP_KEYWORDS = [
+  '그 중',
+  '그중',
+  '그 가운데',
+  '위 결과',
+  '방금 결과',
+  '예시',
+  '몇 개 보여',
+  '몇 곳 보여',
+  '몇 군데 보여',
+  '들어줘',
 ]
 
 const STOP_WORDS = new Set([
-  '알려줘', '알려주세요', '알려',
-  '찾아줘', '찾아주세요', '찾아',
-  '추천해줘', '추천해주세요', '추천',
-  '보여줘', '보여주세요', '보여',
-  '소개해줘', '소개해주세요', '소개',
-  '어디', '어디야', '어디에',
-  '위치', '주소', '어떤', '뭐야', '무엇',
-  '장소', '지역', '정보',
-  '있어', '있나요', '있니',
-  '해주세요', '해줘', '부탁해', '부탁',
-  '좀', '가볼만한', '갈만한',
-  '가볼', '갈', '만한', '있는', '있고',
-  '전체', '총', '몇',
-  '몇개', '몇개야', '몇곳', '몇곳이야',
-  '몇군데', '개수', '곳', '군데', '개',
-  '사진', '이미지',
-  '에서', '에는', '으로', '에', '의',
-  '은', '는', '이', '가', '을', '를',
-  '도', '와', '과', '요',
+  '알려줘',
+  '알려주세요',
+  '알려',
+  '찾아줘',
+  '찾아주세요',
+  '찾아',
+  '추천해줘',
+  '추천해주세요',
+  '추천',
+  '보여줘',
+  '보여주세요',
+  '보여',
+  '소개해줘',
+  '소개해주세요',
+  '소개',
+  '어디',
+  '어디야',
+  '어디에',
+  '위치',
+  '주소',
+  '어떤',
+  '뭐야',
+  '무엇',
+  '장소',
+  '지역',
+  '정보',
+  '있어',
+  '있나요',
+  '있니',
+  '해주세요',
+  '해줘',
+  '부탁해',
+  '부탁',
+  '좀',
+  '가볼만한',
+  '갈만한',
+  '가볼',
+  '갈',
+  '만한',
+  '있는',
+  '있고',
+  '전체',
+  '총',
+  '몇',
+  '몇개',
+  '몇개야',
+  '몇곳',
+  '몇곳이야',
+  '몇군데',
+  '개수',
+  '갯수',
+  '곳',
+  '군데',
+  '개',
+  '사진',
+  '이미지',
+  '에서',
+  '에는',
+  '으로',
+  '에',
+  '의',
+  '은',
+  '는',
+  '이',
+  '가',
+  '을',
+  '를',
+  '도',
+  '와',
+  '과',
+  '요',
 ])
 
 function normalizeText(value) {
@@ -147,15 +269,21 @@ function includesAny(text, keywords) {
   )
 }
 
-function extractCategory(normalizedQuestion) {
+function extractCategory(
+  normalizedQuestion,
+) {
   for (const entry of CATEGORY_ALIASES) {
-    const aliases = [...entry.aliases].sort(
+    const sortedAliases = [
+      ...entry.aliases,
+    ].sort(
       (a, b) => b.length - a.length,
     )
 
     if (
-      aliases.some((alias) =>
-        normalizedQuestion.includes(normalizeText(alias)),
+      sortedAliases.some((alias) =>
+        normalizedQuestion.includes(
+          normalizeText(alias),
+        ),
       )
     ) {
       return entry.category
@@ -165,15 +293,21 @@ function extractCategory(normalizedQuestion) {
   return null
 }
 
-function extractLocation(normalizedQuestion) {
+function extractLocation(
+  normalizedQuestion,
+) {
   for (const entry of LOCATION_ALIASES) {
-    const aliases = [...entry.aliases].sort(
+    const sortedAliases = [
+      ...entry.aliases,
+    ].sort(
       (a, b) => b.length - a.length,
     )
 
     if (
-      aliases.some((alias) =>
-        normalizedQuestion.includes(normalizeText(alias)),
+      sortedAliases.some((alias) =>
+        normalizedQuestion.includes(
+          normalizeText(alias),
+        ),
       )
     ) {
       return entry.location
@@ -183,10 +317,13 @@ function extractLocation(normalizedQuestion) {
   return null
 }
 
-function extractLimit(normalizedQuestion) {
-  const match = normalizedQuestion.match(
-    /(\d{1,2})\s*(곳|개|군데)/,
-  )
+function extractLimit(
+  normalizedQuestion,
+) {
+  const match =
+    normalizedQuestion.match(
+      /(\d{1,2})\s*(곳|개|군데)/,
+    )
 
   if (!match) {
     return DEFAULT_LIMIT
@@ -204,19 +341,34 @@ function extractLimit(normalizedQuestion) {
   )
 }
 
-function isCountRequest(normalizedQuestion) {
+function isCountRequest(
+  normalizedQuestion,
+) {
   return (
-    /몇\s*(개|곳|군데)/.test(normalizedQuestion) ||
-    normalizedQuestion.includes('개수') ||
-    normalizedQuestion.includes('총 몇')
+    /몇\s*(개|곳|군데)/.test(
+      normalizedQuestion,
+    ) ||
+    normalizedQuestion.includes(
+      '개수',
+    ) ||
+    normalizedQuestion.includes(
+      '갯수',
+    ) ||
+    normalizedQuestion.includes(
+      '총 몇',
+    )
   )
 }
 
-function isCourseRequest(normalizedQuestion, category) {
-  const hasClearCourseKeyword = includesAny(
-    normalizedQuestion,
-    COURSE_KEYWORDS,
-  )
+function isCourseRequest(
+  normalizedQuestion,
+  category,
+) {
+  const hasClearCourseKeyword =
+    includesAny(
+      normalizedQuestion,
+      COURSE_KEYWORDS,
+    )
 
   if (!hasClearCourseKeyword) {
     return false
@@ -224,16 +376,19 @@ function isCourseRequest(normalizedQuestion, category) {
 
   if (
     category === '여행코스' &&
-    !includesAny(normalizedQuestion, [
-      '당일치기',
-      '데이트',
-      '나들이',
-      '장소 조합',
-      '코스 짜',
-      '코스 만들어',
-      '코스 만들',
-      '코스 구성',
-    ])
+    !includesAny(
+      normalizedQuestion,
+      [
+        '당일치기',
+        '데이트',
+        '나들이',
+        '장소 조합',
+        '코스 짜',
+        '코스 만들어',
+        '코스 만들',
+        '코스 구성',
+      ],
+    )
   ) {
     return false
   }
@@ -241,7 +396,10 @@ function isCourseRequest(normalizedQuestion, category) {
   return true
 }
 
-function determineIntent(normalizedQuestion, category) {
+function determineIntent(
+  normalizedQuestion,
+  category,
+) {
   if (
     includesAny(
       normalizedQuestion,
@@ -251,7 +409,11 @@ function determineIntent(normalizedQuestion, category) {
     return 'limitation'
   }
 
-  if (isCountRequest(normalizedQuestion)) {
+  if (
+    isCountRequest(
+      normalizedQuestion,
+    )
+  ) {
     return 'count'
   }
 
@@ -267,14 +429,19 @@ function determineIntent(normalizedQuestion, category) {
   return 'search'
 }
 
-function findExactTitleMatches(normalizedQuestion) {
+function findExactTitleMatches(
+  normalizedQuestion,
+) {
   return allPlaces
     .filter((place) => {
-      const normalizedTitle = normalizeText(place.title)
+      const normalizedTitle =
+        normalizeText(place.title)
 
       return (
         normalizedTitle.length >= 2 &&
-        normalizedQuestion.includes(normalizedTitle)
+        normalizedQuestion.includes(
+          normalizedTitle,
+        )
       )
     })
     .sort(
@@ -300,9 +467,12 @@ function getAllKnownAliases() {
     ...locationAliases,
     ...LIMITATION_KEYWORDS,
     ...COURSE_KEYWORDS,
+    ...FOLLOW_UP_KEYWORDS,
   ]
     .map(normalizeText)
-    .sort((a, b) => b.length - a.length)
+    .sort(
+      (a, b) => b.length - a.length,
+    )
 }
 
 function removeKnownAliases(text) {
@@ -315,16 +485,29 @@ function removeKnownAliases(text) {
 
 function stripParticle(token) {
   const particles = [
-    '에서', '에는', '으로', '까지', '부터',
-    '에게', '한테', '에', '의', '은', '는',
-    '이', '가', '을', '를', '도', '와', '과',
+    '에서',
+    '에는',
+    '으로',
+    '까지',
+    '부터',
+    '에게',
+    '한테',
+    '에',
+    '의',
+    '은',
+    '는',
+    '이',
+    '가',
+    '을',
+    '를',
   ]
 
   let result = token
 
   for (const particle of particles) {
     if (
-      result.length > particle.length + 1 &&
+      result.length >
+        particle.length + 1 &&
       result.endsWith(particle)
     ) {
       result = result.slice(
@@ -339,27 +522,13 @@ function stripParticle(token) {
   return result
 }
 
-function removeCountExpressions(text) {
-  return text
-    .replace(
-      /총\s*몇\s*(개|곳|군데)?\s*(이야|야|예요|이에요|인가요|인가|나요|니|입니까)?/g,
-      ' ',
-    )
-    .replace(
-      /몇\s*(개|곳|군데)\s*(이야|야|예요|이에요|인가요|인가|나요|니|입니까)?/g,
-      ' ',
-    )
-    .replace(
-      /개수\s*(는|가|를|도)?\s*(이야|야|예요|이에요|인가요|인가|나요|니|입니까)?/g,
-      ' ',
-    )
-}
-
 function extractSearchKeywords(
   normalizedQuestion,
   exactTitleMatches,
 ) {
-  if (exactTitleMatches.length > 0) {
+  if (
+    exactTitleMatches.length > 0
+  ) {
     return []
   }
 
@@ -367,11 +536,29 @@ function extractSearchKeywords(
     normalizedQuestion,
   )
 
-  text = removeCountExpressions(text)
-
   text = text
-    .replace(/\d{1,2}\s*(곳|개|군데)/g, ' ')
-    .replace(/[?!.,()[\]{}"'`~:;/\\]/g, ' ')
+    // 몇 개야, 몇 곳인가요 등의 표현 제거
+    .replace(
+      /몇\s*(개|곳|군데)(?:나|야|이야|인가|인가요|인지|입니까|예요|이에요)?/g,
+      ' ',
+    )
+
+    // 개수, 갯수, 총 개수 등의 표현 제거
+    .replace(
+      /(?:총\s*)?(개수|갯수|수량)/g,
+      ' ',
+    )
+
+    // 3곳, 5개, 2군데 등의 표시 개수 제거
+    .replace(
+      /\d{1,2}\s*(곳|개|군데)/g,
+      ' ',
+    )
+
+    .replace(
+      /[?!.,()[\]{}"'`~:;/\\]/g,
+      ' ',
+    )
     .replace(/\s+/g, ' ')
     .trim()
 
@@ -384,35 +571,65 @@ function extractSearchKeywords(
     .map(stripParticle)
     .map((token) => token.trim())
     .filter(Boolean)
-    .filter((token) => !STOP_WORDS.has(token))
-    .filter((token) => token.length >= 2)
+    .filter(
+      (token) =>
+        !STOP_WORDS.has(token),
+    )
+    .filter(
+      (token) =>
+        token.length >= 2,
+    )
 }
 
-function matchesLocation(place, location) {
+function getPlaceAddress(place) {
+  return String(
+    place.address ??
+      place.addr1 ??
+      '',
+  )
+}
+
+function matchesLocation(
+  place,
+  location,
+) {
   if (!location) {
     return true
   }
 
-  const address = normalizeText(place.address)
+  const normalizedAddress =
+    normalizeText(
+      getPlaceAddress(place),
+    )
 
-  if (location === '충청도') {
+  if (location === '충청권') {
     return (
-      address.includes('충청남도') ||
-      address.includes('충청북도')
+      normalizedAddress.includes(
+        '충청남도',
+      ) ||
+      normalizedAddress.includes(
+        '충청북도',
+      )
     )
   }
 
-  return address.includes(
+  return normalizedAddress.includes(
     normalizeText(location),
   )
 }
 
-function matchesCategory(place, category) {
+function matchesCategory(
+  place,
+  category,
+) {
   if (!category) {
     return true
   }
 
-  return String(place.contentType) === category
+  return (
+    String(place.contentType) ===
+    category
+  )
 }
 
 function matchesImageRequirement(
@@ -429,49 +646,56 @@ function matchesImageRequirement(
 function matchesSearchKeywords(
   place,
   keywords,
-  category,
 ) {
   if (keywords.length === 0) {
     return true
   }
 
-  const normalizedTitle =
-    normalizeText(place.title)
+  const searchableText =
+    normalizeText(
+      [
+        place.title,
+        getPlaceAddress(place),
+        place.contentType,
+      ].join(' '),
+    )
 
-  const searchableText = normalizeText(
-    [
-      place.title,
-      place.address,
-      place.contentType,
-    ].join(' '),
+  return keywords.every(
+    (keyword) =>
+      searchableText.includes(
+        keyword,
+      ),
   )
+}
 
-  let remainingKeywords = keywords
+function comparePlacesByImage(
+  a,
+  b,
+) {
+  const aHasImage =
+    Boolean(a.imageUrl)
 
-  /*
-   * 현재 데이터에는 공원 전용 카테고리가 없습니다.
-   * 별도 카테고리 없이 공원을 검색하면 관광지 중
-   * 제목에 '공원'이 들어간 장소만 검색합니다.
-   */
-  if (
-    !category &&
-    keywords.includes('공원')
-  ) {
-    if (
-      place.contentType !== '관광지' ||
-      !normalizedTitle.includes('공원')
-    ) {
-      return false
-    }
+  const bHasImage =
+    Boolean(b.imageUrl)
 
-    remainingKeywords = keywords.filter(
-      (keyword) => keyword !== '공원',
+  if (aHasImage !== bHasImage) {
+    return (
+      Number(bHasImage) -
+      Number(aHasImage)
     )
   }
 
-  return remainingKeywords.every(
-    (keyword) =>
-      searchableText.includes(keyword),
+  return String(a.title).localeCompare(
+    String(b.title),
+    'ko-KR',
+  )
+}
+
+function sortPlacesByImagePreference(
+  places,
+) {
+  return [...places].sort(
+    comparePlacesByImage,
   )
 }
 
@@ -504,12 +728,17 @@ function filterPlaces({
     }
 
     return (
-      matchesLocation(place, location) &&
-      matchesCategory(place, category) &&
+      matchesLocation(
+        place,
+        location,
+      ) &&
+      matchesCategory(
+        place,
+        category,
+      ) &&
       matchesSearchKeywords(
         place,
         keywords,
-        category,
       )
     )
   })
@@ -522,8 +751,12 @@ function findFirstUnselectedPlace(
 ) {
   return candidates.find(
     (place) =>
-      categories.includes(place.contentType) &&
-      !selectedIds.has(String(place.id)),
+      categories.includes(
+        place.contentType,
+      ) &&
+      !selectedIds.has(
+        String(place.id),
+      ),
   )
 }
 
@@ -550,35 +783,46 @@ function selectCoursePlaces(
     ],
   ]
 
-  for (const categories of categoryGroups) {
+  for (
+    const categories of categoryGroups
+  ) {
     if (
-      selectedPlaces.length >= targetCount
+      selectedPlaces.length >=
+      targetCount
     ) {
       break
     }
 
-    const place = findFirstUnselectedPlace(
-      candidates,
-      categories,
-      selectedIds,
-    )
+    const place =
+      findFirstUnselectedPlace(
+        candidates,
+        categories,
+        selectedIds,
+      )
 
     if (place) {
       selectedPlaces.push(place)
-      selectedIds.add(String(place.id))
+
+      selectedIds.add(
+        String(place.id),
+      )
     }
   }
 
   for (const place of candidates) {
     if (
-      selectedPlaces.length >= targetCount
+      selectedPlaces.length >=
+      targetCount
     ) {
       break
     }
 
-    const placeId = String(place.id)
+    const placeId =
+      String(place.id)
 
-    if (!selectedIds.has(placeId)) {
+    if (
+      !selectedIds.has(placeId)
+    ) {
       selectedPlaces.push(place)
       selectedIds.add(placeId)
     }
@@ -589,58 +833,124 @@ function selectCoursePlaces(
 
 export function searchPlacesFromQuestion(
   question,
+  previousFilters = null,
 ) {
   const normalizedQuestion =
     normalizeText(question)
 
+  const explicitCategory =
+    extractCategory(
+      normalizedQuestion,
+    )
+
+  const explicitLocation =
+    extractLocation(
+      normalizedQuestion,
+    )
+
+  const isFollowUp =
+    includesAny(
+      normalizedQuestion,
+      FOLLOW_UP_KEYWORDS,
+    )
+
   const category =
-    extractCategory(normalizedQuestion)
+    explicitCategory ??
+    (
+      isFollowUp
+        ? previousFilters?.category ??
+          null
+        : null
+    )
 
   const location =
-    extractLocation(normalizedQuestion)
+    explicitLocation ??
+    (
+      isFollowUp
+        ? previousFilters?.location ??
+          null
+        : null
+    )
+
+  const explicitlyRequiresImage =
+    normalizedQuestion.includes(
+      '사진',
+    ) ||
+    normalizedQuestion.includes(
+      '이미지',
+    )
 
   const requiresImage =
-    normalizedQuestion.includes('사진') ||
-    normalizedQuestion.includes('이미지')
-
-  const limit =
-    extractLimit(normalizedQuestion)
-
-  const intent =
-    determineIntent(
-      normalizedQuestion,
-      category,
+    explicitlyRequiresImage ||
+    (
+      isFollowUp &&
+      Boolean(
+        previousFilters
+          ?.requiresImage,
+      )
     )
+
+  const limit = extractLimit(
+    normalizedQuestion,
+  )
+
+  const intent = determineIntent(
+    normalizedQuestion,
+    category,
+  )
 
   const exactTitleMatches =
     findExactTitleMatches(
       normalizedQuestion,
     )
 
+  let keywords
+
+  if (
+    isFollowUp &&
+    Array.isArray(
+      previousFilters?.keywords,
+    )
+  ) {
+    keywords =
+      previousFilters.keywords
+  } else {
+    keywords =
+      extractSearchKeywords(
+        normalizedQuestion,
+        exactTitleMatches,
+      )
+  }
+
   const filters = {
     location,
     category,
     requiresImage,
+    keywords,
     limit,
+    isFollowUp,
   }
 
   if (intent === 'limitation') {
     const limitationPlaces =
-      exactTitleMatches
-        .filter((place) =>
-          matchesImageRequirement(
-            place,
-            requiresImage,
-          ),
-        )
-        .slice(0, limit)
+      sortPlacesByImagePreference(
+        exactTitleMatches.filter(
+          (place) =>
+            matchesImageRequirement(
+              place,
+              requiresImage,
+            ),
+        ),
+      ).slice(0, limit)
 
     return {
       intent,
       filters,
-      total: exactTitleMatches.length,
+      total:
+        exactTitleMatches.length,
       places: limitationPlaces,
-      limitationMessage: LIMITATION_MESSAGE,
+      limitationMessage:
+        LIMITATION_MESSAGE,
       needsClarification: false,
     }
   }
@@ -658,22 +968,25 @@ export function searchPlacesFromQuestion(
     }
 
     const courseCandidates =
-      allPlaces.filter(
-        (place) =>
-          matchesLocation(
-            place,
-            location,
-          ) &&
-          matchesImageRequirement(
-            place,
-            requiresImage,
-          ),
+      sortPlacesByImagePreference(
+        allPlaces.filter(
+          (place) =>
+            matchesLocation(
+              place,
+              location,
+            ) &&
+            matchesImageRequirement(
+              place,
+              requiresImage,
+            ),
+        ),
       )
 
     return {
       intent,
       filters,
-      total: courseCandidates.length,
+      total:
+        courseCandidates.length,
       places: selectCoursePlaces(
         courseCandidates,
         limit,
@@ -683,29 +996,27 @@ export function searchPlacesFromQuestion(
     }
   }
 
-  /*
-   * count 질문에서도 '공원' 같은 핵심 검색어는 유지합니다.
-   * 대신 '몇 개야', '개수는' 같은 표현만 제거합니다.
-   */
-  const keywords =
-    extractSearchKeywords(
-      normalizedQuestion,
-      exactTitleMatches,
+  const filteredPlaces =
+    sortPlacesByImagePreference(
+      filterPlaces({
+        location,
+        category,
+        requiresImage,
+        keywords,
+        exactTitleMatches,
+      }),
     )
-
-  const filteredPlaces = filterPlaces({
-    location,
-    category,
-    requiresImage,
-    keywords,
-    exactTitleMatches,
-  })
 
   return {
     intent,
     filters,
-    total: filteredPlaces.length,
-    places: filteredPlaces.slice(0, limit),
+    total:
+      filteredPlaces.length,
+    places:
+      filteredPlaces.slice(
+        0,
+        limit,
+      ),
     limitationMessage: null,
     needsClarification: false,
   }
