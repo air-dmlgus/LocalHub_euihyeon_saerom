@@ -1,5 +1,6 @@
 <script setup>
 import BaseButton from '../components/common/BaseButton.vue'
+import MapSection from '../components/map/MapSection.vue'
 </script>
 
 <template>
@@ -47,26 +48,7 @@ import BaseButton from '../components/common/BaseButton.vue'
     </div>
   </section>
 
-  <section class="categories">
-    <h2>카테고리 바로가기</h2>
-
-    <div class="category-list">
-      <BaseButton to="/places">관광지</BaseButton>
-      <BaseButton to="/places">음식점</BaseButton>
-      <BaseButton to="/places">문화시설</BaseButton>
-      <BaseButton to="/places">숙박</BaseButton>
-      <BaseButton to="/places">쇼핑</BaseButton>
-      <BaseButton to="/places">축제</BaseButton>
-    </div>
-  </section>
-
-  <section class="intro">
-    <h2>대전·충청을 더 가깝게</h2>
-    <p>
-      LocalHub는 대전·충청 지역 주민과 관광객을 위한
-      간단하고 친절한 지역 정보 서비스입니다.
-    </p>
-  </section>
+  <MapSection />
 </template>
 
 <style scoped>

@@ -71,3 +71,14 @@ img {
 #app {
   min-height: 100vh;
 }
+
+/* Global small pin for Leaflet divIcon */
+.small-pin span {
+  display: block;
+  width: 10px;
+  height: 10px;
+  background: #0ea5a4;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
