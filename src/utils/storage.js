@@ -175,14 +175,8 @@ export function getReportedPosts() {
 
 export function getHotPosts() {
   const posts = loadPosts()
-<<<<<<< HEAD
-  const reported = getReportedPosts()
-  return posts
-    .filter((post) => post.likes >= 5 && !reported.includes(post.id))
-=======
   // 신고된 목록(user-specific)으로 즉시 제외하지 않음 — HOT은 좋아요 기준만 적용
   return posts
     .filter((post) => post.likes >= 5)
->>>>>>> fbe5bfc (feat: add storage utility)
     .sort((a, b) => b.likes - a.likes)
 }
