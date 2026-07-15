@@ -1,5 +1,7 @@
 <script setup>
 import { nextTick, onBeforeUnmount, ref } from 'vue'
+import { searchPlacesFromQuestion } from '../../services/placeSearch.js'
+import ChatPlaceCard from './ChatPlaceCard.vue'
 
 const isOpen = ref(false)
 const inputMessage = ref('')
@@ -14,7 +16,7 @@ const INITIAL_MESSAGE =
 const suggestedQuestions = [
   '대전 관광지 3곳 알려줘',
   '유성구 음식점 찾아줘',
-  '당일치기 장소를 조합해줘',
+  '대전 당일치기 장소를 조합해줘',
   '사진 있는 장소 알려줘',
 ]
 
@@ -36,7 +38,9 @@ function createInitialMessages() {
     {
       id: createMessageId(),
       role: 'assistant',
+      intent: 'message',
       text: INITIAL_MESSAGE,
+      places: [],
     },
   ]
 }
@@ -84,6 +88,56 @@ async function startNewConversation() {
   await scrollToBottom()
 }
 
+function createAssistantResponseText(result) {
+  if (result.intent === 'limitation') {
+    return result.limitationMessage
+  }
+
+  if (result.needsClarification) {
+    return '당일치기 또는 데이트 장소를 조합하려면 대전, 유성구, 공주시처럼 원하는 지역을 함께 입력해 주세요.'
+  }
+
+  if (result.intent === 'count') {
+    return `입력한 조건에 맞는 장소는 총 ${result.total.toLocaleString(
+      'ko-KR',
+    )}개입니다.`
+  }
+
+  if (result.total === 0) {
+    return '입력한 조건에 맞는 장소를 현재 LocalHub 데이터에서 찾지 못했어요. 지역명이나 장소 유형을 바꿔 다시 질문해 주세요.'
+  }
+
+  if (result.intent === 'course') {
+    return [
+      '제공된 데이터를 바탕으로 같은 지역의 방문 후보를 조합했어요.',
+      '',
+      `${result.places.length}곳을 아래 카드에서 확인해 주세요.`,
+      '',
+      '운영시간과 실제 이동 경로는 제공 데이터에 없어 방문 전에 별도로 확인해 주세요.',
+    ].join('\n')
+  }
+
+  if (result.total > result.places.length) {
+    return `입력한 조건에 맞는 장소는 총 ${result.total.toLocaleString(
+      'ko-KR',
+    )}곳이며, 그중 ${result.places.length}곳을 소개할게요.`
+  }
+
+  return `입력한 조건에 맞는 장소 ${result.total.toLocaleString(
+    'ko-KR',
+  )}곳을 찾았어요.`
+}
+
+function addSearchErrorMessage() {
+  messages.value.push({
+    id: createMessageId(),
+    role: 'assistant',
+    intent: 'error',
+    text: '지역 정보를 검색하는 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.',
+    places: [],
+  })
+}
+
 async function sendMessage(message = inputMessage.value) {
   const trimmedMessage = String(message ?? '').trim()
 
@@ -94,7 +148,9 @@ async function sendMessage(message = inputMessage.value) {
   messages.value.push({
     id: createMessageId(),
     role: 'user',
+    intent: 'message',
     text: trimmedMessage,
+    places: [],
   })
 
   inputMessage.value = ''
@@ -102,19 +158,53 @@ async function sendMessage(message = inputMessage.value) {
 
   await scrollToBottom()
 
-  // OpenAI API 연결 전 채팅 흐름 확인을 위한 임시 응답입니다.
-  replyTimerId = window.setTimeout(async () => {
-    messages.value.push({
-      id: createMessageId(),
-      role: 'assistant',
-      text: `“${trimmedMessage}” 질문을 확인했어요. 다음 단계에서 LocalHub 지역 데이터를 검색해 실제 장소를 안내하도록 연결할 예정입니다.`,
-    })
+  let searchResult
 
+  try {
+    searchResult = searchPlacesFromQuestion(trimmedMessage)
+  } catch (error) {
+    console.error('장소 검색 중 오류가 발생했습니다.', error)
+
+    addSearchErrorMessage()
     isLoading.value = false
-    replyTimerId = null
 
     await scrollToBottom()
-  }, 700)
+    return
+  }
+
+  replyTimerId = window.setTimeout(async () => {
+    try {
+      const responseText =
+        createAssistantResponseText(searchResult)
+
+      const shouldShowPlaceCards = [
+        'search',
+        'course',
+      ].includes(searchResult.intent)
+
+      messages.value.push({
+        id: createMessageId(),
+        role: 'assistant',
+        intent: searchResult.intent,
+        text: responseText,
+        places: shouldShowPlaceCards
+          ? searchResult.places
+          : [],
+      })
+    } catch (error) {
+      console.error(
+        '챗봇 답변 생성 중 오류가 발생했습니다.',
+        error,
+      )
+
+      addSearchErrorMessage()
+    } finally {
+      isLoading.value = false
+      replyTimerId = null
+
+      await scrollToBottom()
+    }
+  }, 350)
 }
 
 function selectSuggestedQuestion(question) {
@@ -124,6 +214,7 @@ function selectSuggestedQuestion(question) {
 onBeforeUnmount(() => {
   if (replyTimerId) {
     window.clearTimeout(replyTimerId)
+    replyTimerId = null
   }
 })
 </script>
@@ -199,10 +290,36 @@ onBeforeUnmount(() => {
           :class="`message-row--${message.role}`"
         >
           <div
-            class="message-bubble"
-            :class="`message-bubble--${message.role}`"
+            class="message-content"
+            :class="`message-content--${message.role}`"
           >
-            {{ message.text }}
+            <div
+              class="message-bubble"
+              :class="`message-bubble--${message.role}`"
+            >
+              {{ message.text }}
+            </div>
+
+            <div
+              v-if="
+                message.role === 'assistant' &&
+                ['search', 'course'].includes(
+                  message.intent,
+                ) &&
+                message.places &&
+                message.places.length > 0
+              "
+              class="chat-place-list"
+              aria-label="추천 장소 목록"
+            >
+              <div
+                v-for="place in message.places"
+                :key="place.id"
+                class="chat-place-slide"
+              >
+                <ChatPlaceCard :place="place" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -211,15 +328,19 @@ onBeforeUnmount(() => {
           class="message-row message-row--assistant"
         >
           <div
-            class="message-bubble message-bubble--assistant loading-message"
+            class="message-content message-content--assistant"
           >
-            <span class="loading-dot"></span>
-            <span class="loading-dot"></span>
-            <span class="loading-dot"></span>
+            <div
+              class="message-bubble message-bubble--assistant loading-message"
+            >
+              <span class="loading-dot"></span>
+              <span class="loading-dot"></span>
+              <span class="loading-dot"></span>
 
-            <span class="sr-only">
-              답변을 준비하고 있습니다.
-            </span>
+              <span class="sr-only">
+                답변을 준비하고 있습니다.
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -456,9 +577,28 @@ onBeforeUnmount(() => {
   justify-content: flex-start;
 }
 
+.message-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  max-width: 88%;
+  min-width: 0;
+}
+
+.message-content--user {
+  align-items: flex-end;
+}
+
+.message-content--assistant {
+  align-items: stretch;
+  width: 100%;
+}
+
 .message-bubble {
-  max-width: 82%;
+  max-width: 100%;
   padding: 11px 13px;
+
   border-radius: 16px;
 
   font-size: 14px;
@@ -468,6 +608,8 @@ onBeforeUnmount(() => {
 }
 
 .message-bubble--assistant {
+  align-self: flex-start;
+
   border: 1px solid var(--border, #dbe5e5);
   border-bottom-left-radius: 4px;
   background: #ffffff;
@@ -480,6 +622,30 @@ onBeforeUnmount(() => {
   background: #0ea5a4;
 
   color: #ffffff;
+}
+
+.chat-place-list {
+  display: flex;
+  gap: 10px;
+
+  width: 100%;
+  padding: 2px 2px 10px;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-place-slide {
+  flex: 0 0 88%;
+  min-width: 0;
+
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .loading-message {
@@ -662,11 +828,21 @@ onBeforeUnmount(() => {
   }
 
   .chatbot-header {
-    padding-top: max(18px, env(safe-area-inset-top));
+    padding-top: max(
+      18px,
+      env(safe-area-inset-top)
+    );
+  }
+
+  .chat-place-slide {
+    flex-basis: 82%;
   }
 
   .chat-form {
-    padding-bottom: max(14px, env(safe-area-inset-bottom));
+    padding-bottom: max(
+      14px,
+      env(safe-area-inset-bottom)
+    );
   }
 }
 </style>
