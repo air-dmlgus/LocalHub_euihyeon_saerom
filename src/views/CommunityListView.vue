@@ -127,20 +127,18 @@ const previousPage = () => {
 const nextPage = () => {
   if (currentPage.value < totalPages.value) goToPage(currentPage.value + 1)
 }
-const goHome = () => {
-  router.push('/')
-}
 </script>
 
 <template>
   <section class="community-list">
     <div class="header">
-      <button @click="goHome" class="back-btn header-back" aria-label="홈으로 이동">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>
-  <span>홈으로</span>
-</button><p class="eyebrow">LOCAL COMMUNITY</p>
+      <button type="button" @click="goHome" class="header-back" aria-label="홈으로 이동">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>홈으로</span>
+      </button>
+      <p class="eyebrow">LOCAL COMMUNITY</p>
       <h1>지역 커뮤니티</h1>
       <p class="description">주민과 관광객이 지역 이야기를 공유하는 공간입니다.</p>
       <div class="notice">
@@ -217,7 +215,7 @@ const goHome = () => {
 <style scoped>
 /* 기존 스타일 그대로 유지 (필요시 수정) */
 .community-list { max-width: 900px; margin: 0 auto; }
-.header { position: relative; padding-top: 8px; }
+.header { position: relative; padding-top: 8px; margin-bottom: 24px; }
 .header-back {
   display: inline-flex;
   align-items: center;
@@ -230,10 +228,17 @@ const goHome = () => {
   box-shadow: 0 6px 18px rgba(14,165,164,0.06);
   font-weight: 700;
   cursor: pointer;
+<<<<<<< HEAD
+}
+.back-btn svg { color: var(--primary-dark, #0b8f8e); }
+.back-btn:hover { transform: translateY(-2px); }
+.header-back { margin-bottom: 12px; } /* eyebrow 위에 올릴 때 간격 조정용 */
+=======
   margin-bottom: 12px; /* eyebrow 위로 올림 */
 }
 .header-back svg { color: var(--primary-dark, #0b8f8e); }
 .header-back:hover { transform: translateY(-2px); }
+>>>>>>> origin/master
 .eyebrow { margin: 0 0 8px; color: #087f7e; font-size: 14px; font-weight: 700; }
 h1 { margin: 0 0 16px; color: var(--text-heading, #163535); font-size: 32px; }
 .description { color: var(--text, #435858); line-height: 1.7; margin: 0; }

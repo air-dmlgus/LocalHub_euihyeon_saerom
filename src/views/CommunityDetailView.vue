@@ -224,6 +224,7 @@ const handlePasswordKeyup = (e, action) => {
           <span class="post-date">{{ formattedDate }}</span>
         </div>
       </header>
+ 
 
       <div v-if="post.image" class="post-image-container">
         <img :src="post.image" :alt="post.title" class="post-image" />
