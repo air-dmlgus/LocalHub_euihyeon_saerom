@@ -2,18 +2,24 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import BaseButton from '../components/common/BaseButton.vue'
-import { loadPosts, getHotPosts, getLikedPosts, getReportedPosts } from '../utils/storage.js'
+import {
+  loadPosts,
+  getHotPosts,
+  getLikedPosts,
+  getReportedPosts,
+} from '../utils/storage.js'
 
 const router = useRouter()
 const route = useRoute()
+
 const posts = ref([])
+const likedPosts = ref([])
+const reportedPosts = ref([])
+
 const searchKeyword = ref('')
 const activeTab = ref('all')
 const currentPage = ref(1)
 const selectedCategory = ref('전체')
-
-const likedPosts = ref([])
-const reportedPosts = ref([])
 
 const ITEMS_PER_PAGE = 10
 
@@ -33,7 +39,7 @@ const categories = [
   '쇼핑',
   '문화시설',
   '레포츠',
-  '기타'
+  '기타',
 ]
 
 const refreshPosts = () => {
@@ -43,7 +49,11 @@ const refreshPosts = () => {
     reportedPosts.value = getReportedPosts() || []
     currentPage.value = 1
   } catch (error) {
-    console.error('새로고침 실패:', error)
+    console.error('게시글 새로고침 실패:', error)
+
+    posts.value = []
+    likedPosts.value = []
+    reportedPosts.value = []
   }
 }
 
@@ -54,9 +64,15 @@ onMounted(() => {
 watch(
   () => route.path,
   (newPath) => {
-    if (newPath === '/community') refreshPosts()
-  }
+    if (newPath === '/community') {
+      refreshPosts()
+    }
+  },
 )
+
+watch(searchKeyword, () => {
+  currentPage.value = 1
+})
 
 const filteredPosts = computed(() => {
   let result = []
@@ -67,44 +83,75 @@ const filteredPosts = computed(() => {
     result = posts.value || []
   }
 
-  // 카테고리 필터 적용
-  if (selectedCategory.value && selectedCategory.value !== '전체') {
-    result = result.filter((p) => p.category === selectedCategory.value)
+  if (
+    selectedCategory.value &&
+    selectedCategory.value !== '전체'
+  ) {
+    result = result.filter(
+      (post) => post.category === selectedCategory.value,
+    )
   }
 
-  // 검색어 필터 적용
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase()
-    result = result.filter(
-      (post) =>
-        (post.title && post.title.toLowerCase().includes(keyword)) ||
-        (post.content && post.content.toLowerCase().includes(keyword))
-    )
+  const keyword = searchKeyword.value.trim().toLowerCase()
+
+  if (keyword) {
+    result = result.filter((post) => {
+      const title = String(post.title || '').toLowerCase()
+      const content = String(post.content || '').toLowerCase()
+
+      return title.includes(keyword) || content.includes(keyword)
+    })
   }
 
   return result
 })
 
 const totalPages = computed(() => {
-  if (!filteredPosts.value) return 0
-  return Math.max(1, Math.ceil(filteredPosts.value.length / ITEMS_PER_PAGE))
+  return Math.max(
+    1,
+    Math.ceil(filteredPosts.value.length / ITEMS_PER_PAGE),
+  )
 })
 
 const displayPosts = computed(() => {
-  if (!filteredPosts.value || filteredPosts.value.length === 0) return []
-  const startIndex = (currentPage.value - 1) * ITEMS_PER_PAGE
-  return filteredPosts.value.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  if (filteredPosts.value.length === 0) {
+    return []
+  }
+
+  const startIndex =
+    (currentPage.value - 1) * ITEMS_PER_PAGE
+
+  return filteredPosts.value.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
+  )
 })
 
 const pageNumbers = computed(() => {
   const pages = []
-  const max = totalPages.value
-  for (let i = 1; i <= max; i++) pages.push(i)
+
+  for (let page = 1; page <= totalPages.value; page += 1) {
+    pages.push(page)
+  }
+
   return pages
 })
 
-const goToDetail = (id) => router.push(`/community/${id}`)
-const goToWrite = () => router.push('/community/new')
+const hotPostCount = computed(() => {
+  return (getHotPosts() || []).length
+})
+
+const goHome = () => {
+  router.push('/')
+}
+
+const goToDetail = (id) => {
+  router.push(`/community/${id}`)
+}
+
+const goToWrite = () => {
+  router.push('/community/new')
+}
 
 const switchTab = (tab) => {
   activeTab.value = tab
@@ -117,169 +164,698 @@ const onCategoryChange = () => {
 }
 
 const goToPage = (page) => {
+  if (page < 1 || page > totalPages.value) {
+    return
+  }
+
   currentPage.value = page
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth',
+  })
 }
 
 const previousPage = () => {
-  if (currentPage.value > 1) goToPage(currentPage.value - 1)
+  if (currentPage.value > 1) {
+    goToPage(currentPage.value - 1)
+  }
 }
+
 const nextPage = () => {
-  if (currentPage.value < totalPages.value) goToPage(currentPage.value + 1)
+  if (currentPage.value < totalPages.value) {
+    goToPage(currentPage.value + 1)
+  }
+}
+
+const getPostPreview = (content) => {
+  const text = String(content || '')
+
+  if (text.length > 100) {
+    return `${text.substring(0, 100)}...`
+  }
+
+  return text
+}
+
+const formatDate = (dateValue) => {
+  if (!dateValue) {
+    return ''
+  }
+
+  const date = new Date(dateValue)
+
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  return date.toLocaleDateString('ko-KR')
 }
 </script>
 
 <template>
   <section class="community-list">
     <div class="header">
-      <button type="button" @click="goHome" class="header-back" aria-label="홈으로 이동">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <button
+        type="button"
+        class="header-back"
+        aria-label="홈으로 이동"
+        @click="goHome"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <path
+            d="M15 18l-6-6 6-6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
+
         <span>홈으로</span>
       </button>
+
       <p class="eyebrow">LOCAL COMMUNITY</p>
       <h1>지역 커뮤니티</h1>
-      <p class="description">주민과 관광객이 지역 이야기를 공유하는 공간입니다.</p>
+
+      <p class="description">
+        주민과 관광객이 지역 이야기를 공유하는 공간입니다.
+      </p>
+
       <div class="notice">
         <p>
-          💡 이 게시판은 현재 브라우저와 기기에서만 게시글이 보입니다.
-          다른 브라우저나 기기에서는 게시글이 표시되지 않습니다.
+          💡 이 게시판은 현재 브라우저와 기기에서만 게시글이
+          보입니다. 다른 브라우저나 기기에서는 게시글이 표시되지
+          않습니다.
         </p>
       </div>
     </div>
 
     <div class="tabs">
-      <button @click="switchTab('all')" :class="{ active: activeTab === 'all' }" class="tab-btn">
+      <button
+        type="button"
+        class="tab-btn"
+        :class="{ active: activeTab === 'all' }"
+        @click="switchTab('all')"
+      >
         전체 ({{ posts.length }})
       </button>
-      <button @click="switchTab('hot')" :class="{ active: activeTab === 'hot' }" class="tab-btn">
-        🔥 HOT ({{ getHotPosts().length }})
+
+      <button
+        type="button"
+        class="tab-btn"
+        :class="{ active: activeTab === 'hot' }"
+        @click="switchTab('hot')"
+      >
+        🔥 HOT ({{ hotPostCount }})
       </button>
     </div>
 
     <div class="controls">
-      <select v-model="selectedCategory" @change="onCategoryChange" class="category-select">
-        <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+      <select
+        v-model="selectedCategory"
+        class="category-select"
+        aria-label="게시글 카테고리"
+        @change="onCategoryChange"
+      >
+        <option
+          v-for="category in categories"
+          :key="category"
+          :value="category"
+        >
+          {{ category }}
+        </option>
       </select>
 
-      <input v-model="searchKeyword" type="text" class="search-input" placeholder="게시글 검색..." />
+      <input
+        v-model="searchKeyword"
+        type="search"
+        class="search-input"
+        placeholder="게시글 검색..."
+        aria-label="게시글 검색"
+      />
 
-      <BaseButton @click="goToWrite" class="write-btn">✍️ 게시글 작성</BaseButton>
+      <BaseButton
+        class="write-btn"
+        @click="goToWrite"
+      >
+        ✍️ 게시글 작성
+      </BaseButton>
     </div>
 
-    <div v-if="displayPosts.length === 0" class="empty-state">
+    <div
+      v-if="displayPosts.length === 0"
+      class="empty-state"
+    >
       <p>게시글이 없습니다.</p>
-      <p v-if="searchKeyword" class="sub">검색 결과가 없습니다.</p>
-      <p v-else class="sub">첫 번째 게시글을 작성해보세요! ✨</p>
+
+      <p
+        v-if="searchKeyword"
+        class="sub"
+      >
+        검색 결과가 없습니다.
+      </p>
+
+      <p
+        v-else
+        class="sub"
+      >
+        첫 번째 게시글을 작성해보세요! ✨
+      </p>
     </div>
 
-    <div v-else class="posts-list">
-      <article v-for="post in displayPosts" :key="post.id" class="post-card" @click="goToDetail(post.id)">
+    <div
+      v-else
+      class="posts-list"
+    >
+      <article
+        v-for="post in displayPosts"
+        :key="post.id"
+        class="post-card"
+        tabindex="0"
+        role="button"
+        @click="goToDetail(post.id)"
+        @keydown.enter="goToDetail(post.id)"
+        @keydown.space.prevent="goToDetail(post.id)"
+      >
         <div class="post-header">
           <div class="post-title-area">
-            <span v-if="post.likes >= 5" class="hot-badge">🔥</span>
-            <span class="category-badge">{{ post.category }}</span>
-            <h3 class="post-title">{{ post.title }}</h3>
+            <span
+              v-if="(post.likes ?? 0) >= 5"
+              class="hot-badge"
+            >
+              🔥
+            </span>
+
+            <span class="category-badge">
+              {{ post.category || '일반' }}
+            </span>
+
+            <h3 class="post-title">
+              {{ post.title }}
+            </h3>
           </div>
-          <span class="post-date">{{ new Date(post.createdAt).toLocaleDateString('ko-KR') }}</span>
+
+          <span class="post-date">
+            {{ formatDate(post.createdAt) }}
+          </span>
         </div>
 
-        <div v-if="post.image" class="post-image-thumb"><img :src="post.image" :alt="post.title" /></div>
+        <div
+          v-if="post.image"
+          class="post-image-thumb"
+        >
+          <img
+            :src="post.image"
+            :alt="post.title || '게시글 첨부 이미지'"
+          />
+        </div>
 
         <p class="post-content">
-          {{ post.content.substring(0, 100) }}{{ post.content.length > 100 ? '...' : '' }}
+          {{ getPostPreview(post.content) }}
         </p>
 
         <div class="post-stats">
-          <span class="stat">👍 {{ post.likes ?? 0 }}</span>
-          <span class="stat">💬 {{ post.comments?.length ?? 0 }}</span>
+          <span class="stat">
+            👍 {{ post.likes ?? 0 }}
+          </span>
+
+          <span class="stat">
+            💬 {{ post.comments?.length ?? 0 }}
+          </span>
         </div>
       </article>
     </div>
 
-    <div v-if="totalPages > 1" class="pagination">
-      <button @click="previousPage" :disabled="currentPage === 1" class="pagination-btn">← 이전</button>
+    <div
+      v-if="totalPages > 1"
+      class="pagination"
+    >
+      <button
+        type="button"
+        class="pagination-btn"
+        :disabled="currentPage === 1"
+        @click="previousPage"
+      >
+        ← 이전
+      </button>
+
       <div class="page-numbers">
-        <button v-for="page in pageNumbers" :key="page" @click="goToPage(page)" :class="{ active: currentPage === page }" class="page-btn">{{ page }}</button>
+        <button
+          v-for="page in pageNumbers"
+          :key="page"
+          type="button"
+          class="page-btn"
+          :class="{ active: currentPage === page }"
+          @click="goToPage(page)"
+        >
+          {{ page }}
+        </button>
       </div>
-      <button @click="nextPage" :disabled="currentPage === totalPages" class="pagination-btn">다음 →</button>
+
+      <button
+        type="button"
+        class="pagination-btn"
+        :disabled="currentPage === totalPages"
+        @click="nextPage"
+      >
+        다음 →
+      </button>
     </div>
 
-    <div v-if="filteredPosts.length > 0" class="page-info">
-      페이지 {{ currentPage }} / {{ totalPages }} (총 {{ filteredPosts.length }}개)
+    <div
+      v-if="filteredPosts.length > 0"
+      class="page-info"
+    >
+      페이지 {{ currentPage }} / {{ totalPages }}
+      (총 {{ filteredPosts.length }}개)
     </div>
   </section>
 </template>
 
 <style scoped>
-/* 기존 스타일 그대로 유지 (필요시 수정) */
-.community-list { max-width: 900px; margin: 0 auto; }
-.header { position: relative; padding-top: 8px; margin-bottom: 24px; }
+.community-list {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header {
+  position: relative;
+  padding-top: 8px;
+  margin-bottom: 24px;
+}
+
 .header-back {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 12px;
   padding: 8px 12px;
-  background: var(--surface, #fff);
+  background: var(--surface, #ffffff);
   color: var(--primary-dark, #0b8f8e);
-  border: 1px solid rgba(14,165,164,0.12);
+  border: 1px solid rgba(14, 165, 164, 0.12);
   border-radius: 999px;
-  box-shadow: 0 6px 18px rgba(14,165,164,0.06);
+  box-shadow: 0 6px 18px rgba(14, 165, 164, 0.06);
+  font-family: inherit;
   font-weight: 700;
   cursor: pointer;
-<<<<<<< HEAD
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
-.back-btn svg { color: var(--primary-dark, #0b8f8e); }
-.back-btn:hover { transform: translateY(-2px); }
-.header-back { margin-bottom: 12px; } /* eyebrow 위에 올릴 때 간격 조정용 */
-=======
-  margin-bottom: 12px; /* eyebrow 위로 올림 */
+
+.header-back svg {
+  color: var(--primary-dark, #0b8f8e);
 }
-.header-back svg { color: var(--primary-dark, #0b8f8e); }
-.header-back:hover { transform: translateY(-2px); }
->>>>>>> origin/master
-.eyebrow { margin: 0 0 8px; color: #087f7e; font-size: 14px; font-weight: 700; }
-h1 { margin: 0 0 16px; color: var(--text-heading, #163535); font-size: 32px; }
-.description { color: var(--text, #435858); line-height: 1.7; margin: 0; }
-.notice { margin-top: 20px; padding: 16px; background: rgba(14, 165, 164, 0.08); border-left: 4px solid #0ea5a4; border-radius: 8px; color: var(--text, #435858); font-size: 14px; }
-.tabs { display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid #e0e0e0; }
-.tab-btn { padding: 12px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: #999; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; }
-.tab-btn:hover { color: var(--text-heading, #163535); }
-.tab-btn.active { color: #0ea5a4; border-bottom-color: #0ea5a4; }
-.controls { display: flex; gap: 12px; margin-bottom: 28px; align-items: center; }
-.category-select { padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; background: #fff; }
-.search-input { flex: 1; padding: 12px 16px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; font-family: inherit; }
-.search-input:focus { outline: none; border-color: #0ea5a4; box-shadow: 0 0 0 3px rgba(14, 165, 164, 0.1); }
-.write-btn { white-space: nowrap; }
-.empty-state { text-align: center; padding: 60px 20px; color: var(--text, #435858); }
-.posts-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
-.post-card { padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; }
-.post-card:hover { border-color: #0ea5a4; background: rgba(14, 165, 164, 0.03); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(14, 165, 164, 0.1); }
-.post-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
-.post-title-area { display: flex; align-items: center; gap: 8px; flex: 1; }
-.hot-badge { font-size: 16px; flex-shrink: 0; }
-.category-badge { display: inline-block; padding: 4px 10px; background: rgba(14, 165, 164, 0.1); color: #0ea5a4; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
-.post-title { margin: 0; color: var(--text-heading, #163535); font-size: 18px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.post-date { color: #999; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
-.post-image-thumb { width: 80px; height: 80px; margin-bottom: 12px; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
-.post-image-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.post-content { margin: 0 0 12px; color: var(--text, #435858); line-height: 1.6; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-clamp: 2; }
-.post-stats { display: flex; gap: 16px; font-size: 13px; color: #999; }
-.stat { display: flex; align-items: center; gap: 4px; }
-.pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 32px 0; padding: 20px; background: #f9f9f9; border-radius: 12px; flex-wrap: wrap; }
-.pagination-btn { padding: 10px 16px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text, #435858); cursor: pointer; transition: all 0.2s; }
-.page-numbers { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
-.page-btn { width: 40px; height: 40px; padding: 0; background: white; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--text, #435858); cursor: pointer; transition: all 0.2s; }
-.page-info { text-align: center; color: #999; font-size: 13px; margin-bottom: 20px; }
+
+.header-back:hover {
+  border-color: rgba(14, 165, 164, 0.3);
+  box-shadow: 0 8px 20px rgba(14, 165, 164, 0.1);
+  transform: translateY(-2px);
+}
+
+.header-back:focus-visible {
+  outline: 3px solid rgba(14, 165, 164, 0.2);
+  outline-offset: 2px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #087f7e;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+h1 {
+  margin: 0 0 16px;
+  color: var(--text-heading, #163535);
+  font-size: 32px;
+}
+
+.description {
+  margin: 0;
+  color: var(--text, #435858);
+  line-height: 1.7;
+}
+
+.notice {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(14, 165, 164, 0.08);
+  color: var(--text, #435858);
+  border-left: 4px solid #0ea5a4;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.notice p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tab-btn {
+  padding: 12px 16px;
+  background: none;
+  color: #777777;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: var(--text-heading, #163535);
+}
+
+.tab-btn.active {
+  color: #0ea5a4;
+  border-bottom-color: #0ea5a4;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.category-select {
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #cccccc;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid #cccccc;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.search-input:focus,
+.category-select:focus {
+  outline: none;
+  border-color: #0ea5a4;
+  box-shadow: 0 0 0 3px rgba(14, 165, 164, 0.1);
+}
+
+.write-btn {
+  white-space: nowrap;
+}
+
+.empty-state {
+  padding: 60px 20px;
+  color: var(--text, #435858);
+  text-align: center;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+.empty-state .sub {
+  margin-top: 8px;
+  color: #888888;
+  font-size: 14px;
+}
+
+.posts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.post-card {
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.post-card:hover {
+  background: rgba(14, 165, 164, 0.03);
+  border-color: #0ea5a4;
+  box-shadow: 0 4px 12px rgba(14, 165, 164, 0.1);
+  transform: translateY(-2px);
+}
+
+.post-card:focus-visible {
+  outline: 3px solid rgba(14, 165, 164, 0.2);
+  outline-offset: 2px;
+}
+
+.post-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.post-title-area {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hot-badge {
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.category-badge {
+  display: inline-block;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  background: rgba(14, 165, 164, 0.1);
+  color: #0ea5a4;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.post-title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-heading, #163535);
+  font-size: 18px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.post-date {
+  flex-shrink: 0;
+  color: #888888;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.post-image-thumb {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.post-image-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.post-content {
+  display: -webkit-box;
+  margin: 0 0 12px;
+  overflow: hidden;
+  color: var(--text, #435858);
+  line-height: 1.6;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.post-stats {
+  display: flex;
+  gap: 16px;
+  color: #777777;
+  font-size: 13px;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 32px 0;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 12px;
+}
+
+.pagination-btn {
+  padding: 10px 16px;
+  background: #ffffff;
+  color: var(--text, #435858);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  color: #0ea5a4;
+  border-color: #0ea5a4;
+}
+
+.pagination-btn:disabled {
+  color: #aaaaaa;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.page-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.page-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: #ffffff;
+  color: var(--text, #435858);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.page-btn:hover,
+.page-btn.active {
+  background: #0ea5a4;
+  color: #ffffff;
+  border-color: #0ea5a4;
+}
+
+.page-info {
+  margin-bottom: 20px;
+  color: #777777;
+  font-size: 13px;
+  text-align: center;
+}
+
 @media (max-width: 768px) {
-  h1 { font-size: 24px; }
-  .controls { flex-direction: column; }
-  .search-input { width: 100%; }
-  .write-btn { width: 100%; }
-  .post-image-thumb { width: 60px; height: 60px; }
-  .pagination { flex-direction: column; gap: 8px; }
-  .page-numbers { max-height: 100px; overflow-y: auto; }
-  .page-btn { width: 36px; height: 36px; font-size: 12px; }
+  .community-list {
+    width: 100%;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .category-select,
+  .search-input,
+  .write-btn {
+    width: 100%;
+  }
+
+  .post-header {
+    flex-direction: column;
+  }
+
+  .post-title-area {
+    width: 100%;
+  }
+
+  .post-date {
+    align-self: flex-end;
+  }
+
+  .post-image-thumb {
+    width: 60px;
+    height: 60px;
+  }
+
+  .pagination {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .page-numbers {
+    max-height: 100px;
+    overflow-y: auto;
+  }
+
+  .page-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
 }
 </style>
