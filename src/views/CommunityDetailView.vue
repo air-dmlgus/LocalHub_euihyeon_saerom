@@ -201,7 +201,12 @@ const handlePasswordKeyup = (e, action) => {
 <template>
   <section class="community-detail">
     <div class="detail-header">
-      <button @click="goBack" class="back-btn">← 목록으로</button>
+      <button @click="goBack" class="back-btn" aria-label="목록으로 이동">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>목록으로</span>
+      </button>
     </div>
 
     <div v-if="error && !post" class="error-state">
@@ -211,7 +216,7 @@ const handlePasswordKeyup = (e, action) => {
 
     <article v-else-if="post" class="detail-container">
       <header class="post-header">
-        <div>
+        <div class="header-left">
           <span class="category-badge">{{ post.category }}</span>
           <h1 class="post-title">{{ post.title }}</h1>
         </div>
@@ -219,6 +224,7 @@ const handlePasswordKeyup = (e, action) => {
           <span class="post-date">{{ formattedDate }}</span>
         </div>
       </header>
+ 
 
       <div v-if="post.image" class="post-image-container">
         <img :src="post.image" :alt="post.title" class="post-image" />
@@ -228,31 +234,30 @@ const handlePasswordKeyup = (e, action) => {
         <p class="post-content">{{ post.content }}</p>
       </div>
 
-      <!-- 교체된 액션 바: likes / comments + 수정/삭제/신고 -->
-<div class="post-actions-bar">
-  <div class="stats">
-    <button @click="handleLike" :class="['action-btn', isLiked ? 'liked' : '']" aria-label="like">
-      <span class="icon">{{ isLiked ? '❤️' : '🤍' }}</span>
-      <span class="count">{{ post.likes ?? 0 }}</span>
-    </button>
+      <div class="post-actions-bar">
+        <div class="stats">
+          <button @click="handleLike" :class="['action-btn', isLiked ? 'liked' : '']" aria-label="like">
+            <span class="icon">{{ isLiked ? '❤️' : '🤍' }}</span>
+            <span class="count">{{ post.likes ?? 0 }}</span>
+          </button>
 
-    <div class="comment-count" title="댓글 수">
-      💬 <span class="count">{{ post.comments?.length ?? 0 }}</span>
-    </div>
-  </div>
+          <div class="comment-count" title="댓글 수">
+            💬 <span class="count">{{ post.comments?.length ?? 0 }}</span>
+          </div>
+        </div>
 
-  <div class="actions">
-    <button @click.stop="goToEdit" class="btn btn-edit">✏️ 수정</button>
-    <button @click.stop="deleteMode = true" class="btn btn-delete">🗑️ 삭제</button>
-    <button
-      @click.stop="reportMode = true"
-      :disabled="hasReported"
-      class="btn btn-report"
-    >
-      {{ hasReported ? '🚫 신고 완료' : '⚠️ 신고' }}
-    </button>
-  </div>
-</div>
+        <div class="actions">
+          <button @click.stop="goToEdit" class="btn btn-edit">✏️ 수정</button>
+          <button @click.stop="deleteMode = true" class="btn btn-delete">🗑️ 삭제</button>
+          <button
+            @click.stop="reportMode = true"
+            :disabled="hasReported"
+            class="btn btn-report"
+          >
+            {{ hasReported ? '🚫 신고 완료' : '⚠️ 신고' }}
+          </button>
+        </div>
+      </div>
 
       <div class="comments-section">
         <h3>댓글 ({{ post.comments?.length ?? 0 }})</h3>
@@ -312,7 +317,6 @@ const handlePasswordKeyup = (e, action) => {
         </div>
       </div>
 
-      <!-- 댓글 삭제 모달 -->
       <div v-if="deletingCommentId" class="modal-overlay">
         <div class="modal">
           <h3>댓글 삭제</h3>
@@ -337,7 +341,6 @@ const handlePasswordKeyup = (e, action) => {
         </div>
       </div>
 
-      <!-- 기존 수정/삭제/신고 모달들 (생략 없이 기존 코드 유지) -->
       <div v-if="editMode" class="modal-overlay">
         <div class="modal">
           <h3>게시글 수정</h3>
@@ -361,32 +364,32 @@ const handlePasswordKeyup = (e, action) => {
         </div>
       </div>
 
-    
-<div v-if="deleteMode" class="inline-delete">
-  <div class="inline-delete-box">
-    <div class="inline-delete-text">
-      <strong>게시글 삭제</strong>
-      <div class="sub">비밀번호를 입력해주세요.</div>
-    </div>
+      <!-- 삭제 확인을 위한 강조 모달 (기존 inline-delete 대신 사용) -->
+<div v-if="deleteMode" class="modal-overlay">
+  <div class="modal danger">
+    <h3>게시글 삭제</h3>
+    <p class="sub">이 작업은 되돌릴 수 없습니다. 게시글을 영구 삭제하시겠습니까?</p>
+
+    <p class="confirm-note">삭제 확인을 위해 비밀번호를 입력해주세요.</p>
 
     <input
       v-model="passwordInput"
       type="password"
-      class="inline-input"
+      class="modal-input"
       placeholder="비밀번호"
       @keyup.enter="confirmDelete"
       autofocus
     />
 
-    <div class="inline-actions">
+    <div v-if="error" class="error-message">⚠️ {{ error }}</div>
+
+    <div class="modal-actions">
       <button @click="cancelDelete" class="btn btn-cancel" :disabled="loading">취소</button>
       <button @click="confirmDelete" class="btn btn-danger" :disabled="loading">
-        {{ loading ? '삭제 중...' : '삭제' }}
+        {{ loading ? '삭제 중...' : '영구 삭제' }}
       </button>
     </div>
   </div>
-
-  <div v-if="error" class="inline-delete-error">⚠️ {{ error }}</div>
 </div>
 
       <div v-if="reportMode" class="modal-overlay">
@@ -408,8 +411,61 @@ const handlePasswordKeyup = (e, action) => {
 </template>
 
 <style scoped>
-/* 기존 스타일 유지 — 필요시 댓글 관련 클래스 스타일 추가 */
-/* 댓글 입력 / 리스트 최소 스타일 (기존 디자인과 조화) */
+/* Back button (톤 맞춘 라운드 버튼) */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface, #ffffff);
+  color: var(--primary-dark, #0b8f8e);
+  border: 1px solid rgba(14,165,164,0.12);
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(14,165,164,0.06);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  margin-bottom: 12px;
+}
+.back-btn svg { display:block; color: var(--primary-dark, #0b8f8e); }
+.back-btn span { font-size: 14px; }
+.back-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(14,165,164,0.10);
+}
+
+/* Header layout tweaks */
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.header-left { display:flex; align-items:center; gap:12px; }
+
+/* Category badge (톤 맞춤) */
+.category-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  background: rgba(14,165,164,0.10);
+  color: var(--primary-dark, #0b8f8e);
+  border-radius: 999px;
+  font-weight: 700;
+  border: 1px solid rgba(14,165,164,0.06);
+  box-shadow: none;
+  font-size: 13px;
+}
+
+/* 제목 스타일 */
+.post-title {
+  margin: 0;
+  color: var(--text-heading, #163535);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+/* 댓글 및 액션 관련 기존 스타일 (정리됨) */
 .comment-input-area {
   margin-bottom: 20px;
   padding: 14px;
@@ -420,7 +476,6 @@ const handlePasswordKeyup = (e, action) => {
   flex-direction: column;
   gap: 10px;
 }
-
 .comment-input {
   width: 100%;
   padding: 12px;
@@ -431,7 +486,6 @@ const handlePasswordKeyup = (e, action) => {
   background: #fbfdfc;
   box-sizing: border-box;
 }
-
 .comment-pw-input {
   width: 280px;
   max-width: 100%;
@@ -442,19 +496,13 @@ const handlePasswordKeyup = (e, action) => {
   background: #fff;
   box-sizing: border-box;
 }
-
 .comment-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
 }
-
-.char-count {
-  color: #8fa9a8;
-  font-size: 13px;
-}
-
+.char-count { color: #8fa9a8; font-size: 13px; }
 .btn-comment-submit {
   padding: 8px 14px;
   background: #0ea5a4;
@@ -466,38 +514,11 @@ const handlePasswordKeyup = (e, action) => {
 }
 .btn-comment-submit:hover { background: #0b8f8e; }
 
-.comments-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.comment-item {
-  padding: 12px 14px;
-  background: #fbfdfc;
-  border: 1px solid #eef7f6;
-  border-radius: 8px;
-}
-
-.comment-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.anonymous-name {
-  font-size: 13px;
-  color: #0ea5a4;
-  font-weight: 700;
-}
-
-.comment-actions {
-  margin-top: 8px;
-  display: flex;
-  justify-content: flex-end;
-}
-
+.comments-list { display: flex; flex-direction: column; gap: 12px; }
+.comment-item { padding: 12px 14px; background: #fbfdfc; border: 1px solid #eef7f6; border-radius: 8px; }
+.comment-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.anonymous-name { font-size: 13px; color: #0ea5a4; font-weight: 700; }
+.comment-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
 .btn-delete-comment {
   background: transparent;
   border: 1px solid #e6e6e6;
@@ -512,6 +533,7 @@ const handlePasswordKeyup = (e, action) => {
   border-color: rgba(255, 100, 100, 0.16);
   color: #f66;
 }
+
 .post-actions-bar {
   display: flex;
   justify-content: space-between;
@@ -524,13 +546,7 @@ const handlePasswordKeyup = (e, action) => {
   background: #fbfdfc;
   border-radius: 8px;
 }
-
-.post-actions-bar .stats {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
+.post-actions-bar .stats { display: flex; align-items: center; gap: 12px; }
 .action-btn {
   display: inline-flex;
   align-items: center;
@@ -543,69 +559,59 @@ const handlePasswordKeyup = (e, action) => {
   color: #666;
   cursor: pointer;
 }
-
 .action-btn .icon { font-size: 16px; }
 .action-btn .count { margin-left: 4px; color: #334; font-weight: 700; }
-
 .action-btn:hover { background: rgba(14,165,164,0.06); color: #0ea5a4; }
 .action-btn.liked { color: #f66; background: rgba(255,230,230,0.4); }
-
 .comment-count { color: #667; font-weight: 600; font-size: 14px; }
 
-.post-actions-bar .actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.btn {
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid #e6e6e6;
-  background: #fff;
-}
-
+.post-actions-bar .actions { display: flex; gap: 8px; align-items: center; }
+.btn { padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #e6e6e6; background: #fff; }
 .btn-edit { color: #0ea5a4; border-color: rgba(14,165,164,0.12); }
 .btn-delete { color: #f66; border-color: rgba(255,100,100,0.12); }
 .btn-report { color: #ff9600; border-color: rgba(255,150,0,0.12); }
-
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.inline-delete {
-  margin-top: 12px;
-}
-
-.inline-delete-box {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  background: #fff;
-  border: 1px solid #e6e6e6;
-  padding: 10px;
-  border-radius: 8px;
-  flex-wrap: wrap;
-}
-
-.inline-delete-text .sub {
-  font-size: 13px;
-  color: #666;
-  margin-top: 2px;
-}
-
-.inline-input {
-  padding: 8px 10px;
-  border: 1px solid #dfecec;
-  border-radius: 8px;
-  min-width: 180px;
-}
-
+.inline-delete { margin-top: 12px; }
+.inline-delete-box { display: flex; gap: 12px; align-items: center; background: #fff; border: 1px solid #e6e6e6; padding: 10px; border-radius: 8px; flex-wrap: wrap; }
+.inline-delete-text .sub { font-size: 13px; color: #666; margin-top: 2px; }
+.inline-input { padding: 8px 10px; border: 1px solid #dfecec; border-radius: 8px; min-width: 180px; }
 .inline-actions { display: flex; gap: 8px; }
+.inline-delete-error { margin-top: 8px; color: #c00; font-size: 13px; }
 
-.inline-delete-error {
-  margin-top: 8px;
-  color: #c00;
-  font-size: 13px;
+/* modal minimal styles */
+.modal-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.35); z-index: 1200; }
+.modal { background: #fff; padding: 18px; border-radius: 12px; width: 420px; max-width: calc(100% - 32px); box-shadow: 0 10px 30px rgba(0,0,0,0.12); }
+.modal-input { width: 100%; padding: 10px 12px; border: 1px solid #e6e6e6; border-radius: 8px; box-sizing: border-box; margin-top: 8px; margin-bottom: 12px; }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; }
+.error-message { color: #c00; margin-top: 8px; }
+
+@media (max-width: 740px) {
+  .post-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .header-left { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .back-btn { margin-bottom: 10px; }
+}
+/* 삭제 모달 강조 스타일 */
+.modal.danger {
+  border-top: 6px solid #ff6b6b;
+}
+.modal.danger h3 {
+  color: #c0392b;
+  margin: 0 0 6px;
+}
+.confirm-note {
+  margin: 6px 0 10px;
+  font-weight: 700;
+  color: #c0392b;
+}
+
+/* 버튼 강조 보완 (이미 존재하면 덮어쓰지 않음) */
+.btn-danger {
+  background: #fff6f6;
+  color: #c0392b;
+  border-color: rgba(240,100,100,0.12);
+}
+.btn-danger:hover {
+  background: #ffecec;
 }
 </style>
